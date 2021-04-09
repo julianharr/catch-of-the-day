@@ -4,6 +4,7 @@ import Order from "./Order";
 import Inventory from "./Inventory";
 import sampleFishes from "../sample-fishes";
 import Fish from "./Fish";
+import base from "../base";
 
 class App extends React.Component {
   state = {
@@ -11,6 +12,36 @@ class App extends React.Component {
     order: {}
   };
 
+  // LIFECYCLE METHODS
+
+  componentDidMount() {
+    const { params } = this.props.match;
+    // Reinstate our local storage for our order
+    const localStorageRef = localStorage.getItem(params.storeId);
+    if(localStorageRef) {
+      this.setState({ order: JSON.parse(localStorageRef) });
+    }
+    // Different from the input ref, this is a
+    // ref to a piece of data in the database
+    this.ref = base.syncState(`${params.storeId}/fishes`, {
+      context: this,
+      state: "fishes"
+    });
+  }
+
+  componentDidUpdate() {
+    localStorage.setItem(this.props.match.params.storeId, JSON.stringify(this.state.order));
+    console.log(this.state.order);
+  }
+
+  componentWillUnmount() {
+    console.log("UNMOUNTED!");
+    // Clean up any memory issues this may have
+    base.removeBinding(this.ref);
+  }
+
+
+  // END LIFECYCLE METHODS
 
   addFish = (fish) => {
     // 1. Take a copy of the existing state (never reach INTO state and modify it directly)
@@ -20,6 +51,15 @@ class App extends React.Component {
     // 3. Set the new fishes object to state (updates these pieces of state)
     this.setState({fishes});
   };
+
+  updateFish = (key, updatedFish) => {
+    // 1. Take a copy of the current state
+    const fishes = { ...this.state.fishes };
+    // 2. Update that state
+    fishes[key] = updatedFish;
+    // 3. Set that to state
+    this.setState({ fishes });
+  }
 
   loadSampleFishes = () => {
     // What is the piece of state to update? fishes. What do we
@@ -61,7 +101,9 @@ class App extends React.Component {
 
         <Inventory
           addFish={this.addFish}
+          updateFish={this.updateFish}
           loadSampleFishes={this.loadSampleFishes}
+          fishes={this.state.fishes}
         />
       </div>
     );
